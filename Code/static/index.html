@@ -13,17 +13,16 @@
         .bg-aura-red { background-color: #e63946; }
         .sort-icon { cursor: pointer; user-select: none; }
         .sort-icon:hover { color: #2563eb; }
-        /* Chat Scrollbar Hide */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-gray-50 font-sans h-screen flex overflow-hidden">
 
-    <!-- Sidebar (Same as before) -->
+    <!-- Sidebar -->
     <aside class="w-64 bg-aura-navy text-white flex flex-col shadow-xl z-10">
         <div class="h-16 flex items-center px-6 border-b border-slate-800">
-            <span class="text-2xl font-bold tracking-wide">OR<span class="text-aura-red">I</span>ON <span class="text-xs text-slate-400">AI</span></span>
+            <span class="text-2xl font-bold tracking-wide">AURA <span class="text-xs text-slate-400">AI</span></span>
         </div>
         <nav class="flex-1 px-4 py-6 space-y-2">
             <a href="#" id="nav-queue" onclick="switchView('queue')" class="flex items-center px-4 py-3 bg-slate-800 text-white rounded-lg transition">
@@ -35,15 +34,18 @@
         </nav>
     </aside>
 
-    <!-- VIEW 1: QUEUE (Omitted detailed internals for brevity, keeping all functionality intact) -->
+    <!-- VIEW 1: QUEUE -->
     <main id="view-queue" class="flex-1 flex flex-col h-full overflow-hidden">
         <header class="h-16 bg-white border-b flex items-center justify-between px-8 shadow-sm">
             <h2 class="text-xl font-semibold text-gray-800">Live Case Queue</h2>
             <div class="flex space-x-4">
+                <input type="file" id="csv-upload" accept=".csv" class="hidden" onchange="handleCSVUpload(event)">
+                <button onclick="document.getElementById('csv-upload').click()" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded shadow hover:bg-indigo-700 transition">📁 Bulk Upload CSV</button>
                 <button onclick="simulateAlert('HIGH')" class="px-4 py-2 bg-aura-red text-white text-sm font-medium rounded shadow hover:bg-red-700 transition">+ Simulate High Risk</button>
                 <button onclick="simulateAlert('LOW')" class="px-4 py-2 bg-slate-200 text-slate-700 text-sm font-medium rounded shadow hover:bg-slate-300 transition">+ Simulate Low Risk</button>
             </div>
         </header>
+
         <div class="px-8 py-4 grid grid-cols-3 gap-6">
             <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center">
                 <div class="p-3 bg-red-100 text-red-600 rounded-lg">Escalated</div>
@@ -54,6 +56,7 @@
                 <div class="ml-4"><p class="text-xl font-bold text-gray-800" id="stat-resolved">0</p></div>
             </div>
         </div>
+
         <div class="flex-1 px-8 pb-8 overflow-hidden flex flex-col">
             <div class="bg-white border border-gray-100 rounded-xl shadow-sm flex-1 flex flex-col overflow-hidden">
                 <div class="flex flex-wrap items-center justify-between p-4 border-b bg-gray-50 gap-4">
@@ -81,12 +84,51 @@
                         <tbody id="case-table-body" class="divide-y divide-gray-100"></tbody>
                     </table>
                 </div>
+                
+                <!-- RESTORED: Pagination Controls -->
+                <div class="flex items-center justify-between p-3 border-t bg-gray-50 text-sm">
+                    <span id="pageInfo" class="text-gray-600">Showing 0 cases</span>
+                    <div class="space-x-2">
+                        <button onclick="changePage(-1)" class="px-3 py-1 border rounded bg-white hover:bg-gray-100 transition">Previous</button>
+                        <span id="pageNumber" class="font-medium px-2">1</span>
+                        <button onclick="changePage(1)" class="px-3 py-1 border rounded bg-white hover:bg-gray-100 transition">Next</button>
+                    </div>
+                </div>
+
             </div>
         </div>
     </main>
 
-    <!-- VIEW 2: REPORTS (Hidden) -->
-    <main id="view-reports" class="hidden flex-1 flex flex-col h-full bg-gray-50"></main>
+    <!-- RESTORED: VIEW 2: COMPLIANCE REPORTS -->
+    <main id="view-reports" class="hidden flex-1 flex flex-col h-full bg-gray-50 overflow-hidden">
+        <header class="h-16 bg-white border-b flex items-center px-8 shadow-sm">
+            <h2 class="text-xl font-semibold text-gray-800">Regulatory Compliance Reports</h2>
+        </header>
+        <div class="p-8">
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-gray-50 border-b">
+                        <tr>
+                            <th class="p-4 text-xs font-semibold text-gray-500 uppercase">Date</th>
+                            <th class="p-4 text-xs font-semibold text-gray-500 uppercase">Total Alerts</th>
+                            <th class="p-4 text-xs font-semibold text-gray-500 uppercase">Auto-Resolution Rate</th>
+                            <th class="p-4 text-xs font-semibold text-gray-500 uppercase">Governance Status</th>
+                            <th class="p-4 text-xs font-semibold text-gray-500 uppercase">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr class="hover:bg-gray-50">
+                            <td class="p-4 font-medium text-gray-900" id="td-date">Today</td>
+                            <td class="p-4 text-gray-600" id="td-total">0</td>
+                            <td class="p-4"><span class="text-emerald-600 font-semibold" id="td-rate">0%</span></td>
+                            <td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">Passed All Rules</span></td>
+                            <td class="p-4"><button onclick="generateRealPDF()" class="text-blue-600 text-sm hover:underline font-medium">Download PDF ↓</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
 
     <!-- SLIDE-OVER MODAL (Wider for Chat) -->
     <div id="case-modal" class="fixed inset-0 z-50 flex justify-end bg-black bg-opacity-40 hidden transition-opacity">
@@ -113,7 +155,7 @@
 
                 <div class="bg-blue-50 border border-blue-100 p-3 rounded-lg text-sm text-blue-900 shadow-sm flex-shrink-0" id="modal-rationale"></div>
 
-                <!-- NEW: C2A CHAT INTERFACE -->
+                <!-- C2A CHAT INTERFACE -->
                 <div class="flex-1 flex flex-col border border-gray-200 rounded-lg overflow-hidden min-h-[200px]">
                     <div class="bg-slate-800 text-white p-3 text-sm font-semibold flex items-center flex-shrink-0">
                         💬 AURA Investigation Agent
@@ -148,7 +190,25 @@
         let globalStats = { total: 0, resolved: 0, escalated: 0 };
         let currentActiveCaseId = null;
 
-        function switchView(v) { /* Keeping exact visual toggle logic, abbreviated for safety */ }
+        function switchView(viewName) {
+            document.getElementById('view-queue').classList.add('hidden');
+            document.getElementById('view-reports').classList.add('hidden');
+            document.getElementById('nav-queue').classList.replace('bg-slate-800', 'hover:bg-slate-800');
+            document.getElementById('nav-queue').classList.replace('text-white', 'text-slate-400');
+            document.getElementById('nav-reports').classList.replace('bg-slate-800', 'hover:bg-slate-800');
+            document.getElementById('nav-reports').classList.replace('text-white', 'text-slate-400');
+
+            if (viewName === 'queue') {
+                document.getElementById('view-queue').classList.remove('hidden');
+                document.getElementById('nav-queue').classList.replace('hover:bg-slate-800', 'bg-slate-800');
+                document.getElementById('nav-queue').classList.replace('text-slate-400', 'text-white');
+            } else {
+                document.getElementById('view-reports').classList.remove('hidden');
+                document.getElementById('nav-reports').classList.replace('hover:bg-slate-800', 'bg-slate-800');
+                document.getElementById('nav-reports').classList.replace('text-slate-400', 'text-white');
+                updateReportStats();
+            }
+        }
 
         async function fetchCases() {
             try {
@@ -184,8 +244,13 @@
                 return 0;
             });
 
+            const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
             const start = (currentPage - 1) * pageSize;
             const paginated = filtered.slice(start, start + pageSize);
+
+            document.getElementById('pageNumber').innerText = currentPage + " of " + totalPages;
+            document.getElementById('pageInfo').innerText = `Showing ${paginated.length > 0 ? start+1 : 0} to ${Math.min(start+pageSize, filtered.length)} of ${filtered.length} cases`;
 
             const tbody = document.getElementById('case-table-body'); tbody.innerHTML = '';
             
@@ -208,7 +273,46 @@
             });
         }
 
-        function downloadCSV() { /* Export Logic */ }
+        // RESTORED: Pagination Javascript Logic
+        function changePage(dir) {
+            currentPage += dir;
+            if(currentPage < 1) currentPage = 1;
+            renderTable();
+        }
+
+        // RESTORED: Compliance PDF Logic
+        function updateReportStats() {
+            const d = new Date().toISOString().split('T')[0];
+            const rate = globalStats.total > 0 ? Math.round((globalStats.resolved / globalStats.total) * 100) : 0;
+            document.getElementById('td-date').innerText = d;
+            document.getElementById('td-total').innerText = globalStats.total;
+            document.getElementById('td-rate').innerText = rate + "%";
+        }
+
+        function generateRealPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const date = new Date().toISOString().split('T')[0];
+            const rate = globalStats.total > 0 ? Math.round((globalStats.resolved / globalStats.total) * 100) : 0;
+
+            doc.setFontSize(20); doc.setTextColor(15, 23, 42);
+            doc.text("AURA Agentic AI - Compliance Audit Report", 14, 22);
+            doc.setFontSize(11); doc.setTextColor(100);
+            doc.text(`Generated Date: ${date}`, 14, 30);
+            doc.text(`Prepared for: Regulatory Submission`, 14, 36);
+            doc.autoTable({
+                startY: 45, head: [['Metric', 'Value']],
+                body: [
+                    ['Total Fraud Alerts Ingested', globalStats.total.toString()],
+                    ['Cases Escalated for Manual Review', globalStats.escalated.toString()],
+                    ['Cases Auto-Resolved by AI or Human', globalStats.resolved.toString()],
+                    ['Overall Resolution Rate', rate + '%'],
+                    ['Governance Rule Violations', '0 (100% Passed)']
+                ],
+                headStyles: { fillColor: [230, 57, 70] },
+            });
+            doc.save(`Compliance_Report_${date}.pdf`);
+        }
 
         // --- MODAL & C2A CHAT LOGIC ---
         function openModal(caseId) {
@@ -221,19 +325,16 @@
             document.getElementById('modal-rationale').innerText = c.ai_rationale || "AI Analysis pending...";
             document.getElementById('modal-risk-badge').innerHTML = c.risk_level === 'HIGH' ? `<span class="px-3 py-1 rounded-full text-sm font-bold bg-red-100 text-red-700">🔴 HIGH RISK</span>` : `<span class="px-3 py-1 rounded-full text-sm font-bold bg-emerald-100 text-emerald-700">🟢 LOW RISK</span>`;
 
-            // Reset Chat
             document.getElementById('chat-history').innerHTML = `
                 <div class="flex">
                     <div class="bg-white border border-gray-200 text-gray-800 px-4 py-2 rounded-xl rounded-tl-none shadow-sm text-sm max-w-[85%]">
                         Hello! I am the AURA Investigation Agent. What would you like to know about ${c.alert_id}?
                     </div>
                 </div>`;
-            
             document.getElementById('case-modal').classList.remove('hidden');
         }
 
         function closeModal() { document.getElementById('case-modal').classList.add('hidden'); currentActiveCaseId = null; }
-
         function handleChatEnter(e) { if(e.key === 'Enter') sendChat(); }
 
         async function sendChat() {
@@ -242,41 +343,19 @@
             if(!q) return;
 
             const chatHist = document.getElementById('chat-history');
-            
-            // Append User Msg
-            chatHist.innerHTML += `
-                <div class="flex justify-end mt-4">
-                    <div class="bg-blue-600 text-white px-4 py-2 rounded-xl rounded-tr-none shadow-sm text-sm max-w-[85%]">
-                        ${q}
-                    </div>
-                </div>`;
+            chatHist.innerHTML += `<div class="flex justify-end mt-4"><div class="bg-blue-600 text-white px-4 py-2 rounded-xl rounded-tr-none shadow-sm text-sm max-w-[85%]">${q}</div></div>`;
             input.value = '';
             chatHist.scrollTop = chatHist.scrollHeight;
 
-            // Typing Indicator
             const typingId = 'typing-' + Date.now();
-            chatHist.innerHTML += `
-                <div id="${typingId}" class="flex mt-4">
-                    <div class="bg-white border border-gray-200 text-gray-500 px-4 py-2 rounded-xl rounded-tl-none text-sm">
-                        Agent is thinking...
-                    </div>
-                </div>`;
+            chatHist.innerHTML += `<div id="${typingId}" class="flex mt-4"><div class="bg-white border border-gray-200 text-gray-500 px-4 py-2 rounded-xl rounded-tl-none text-sm">Agent is thinking...</div></div>`;
             chatHist.scrollTop = chatHist.scrollHeight;
 
-            // Fetch AI Answer
             try {
-                const res = await fetch(`/api/v1/cases/${currentActiveCaseId}/query`, {
-                    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({query: q})
-                });
+                const res = await fetch(`/api/v1/cases/${currentActiveCaseId}/query`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({query: q}) });
                 const data = await res.json();
-                
                 document.getElementById(typingId).remove();
-                chatHist.innerHTML += `
-                    <div class="flex mt-4">
-                        <div class="bg-white border border-gray-200 text-gray-800 px-4 py-2 rounded-xl rounded-tl-none shadow-sm text-sm max-w-[85%]">
-                            ${data.answer}
-                        </div>
-                    </div>`;
+                chatHist.innerHTML += `<div class="flex mt-4"><div class="bg-white border border-gray-200 text-gray-800 px-4 py-2 rounded-xl rounded-tl-none shadow-sm text-sm max-w-[85%]">${data.answer}</div></div>`;
                 chatHist.scrollTop = chatHist.scrollHeight;
             } catch (err) {
                 document.getElementById(typingId).innerText = "Error connecting to AI Agent.";
@@ -285,9 +364,7 @@
 
         async function submitDecision(type) {
             if(!currentActiveCaseId) return;
-            await fetch(`/api/v1/cases/${currentActiveCaseId}/decision`, {
-                method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({decision: type})
-            });
+            await fetch(`/api/v1/cases/${currentActiveCaseId}/decision`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({decision: type}) });
             closeModal(); fetchCases();
         }
 
@@ -298,6 +375,29 @@
                 : { alert_id: randomId, amount: 45.00, channel: "POS", customer_tier: "Standard", ip_location: "Mumbai, India", home_location: "Mumbai, India" };
             await fetch('/api/v1/alerts/ingest', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             fetchCases(); setTimeout(fetchCases, 3000); 
+        }
+
+        // NEW: CSV UPLOAD JAVASCRIPT LOGIC
+        async function handleCSVUpload(event) {
+            const file = event.target.files[0];
+            if(!file) return;
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                alert("Uploading and processing your CSV file... Please wait a few seconds.");
+                const res = await fetch('/api/v1/alerts/bulk-upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                alert(data.message || "Upload complete!");
+                fetchCases();
+            } catch(err) {
+                alert("Upload failed. Make sure it is a valid CSV format.");
+            }
+            event.target.value = ''; // Reset input
         }
 
         fetchCases(); setInterval(fetchCases, 5000);

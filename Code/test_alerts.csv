@@ -1,0 +1,6 @@
+alert_id,amount,channel,customer_tier,ip_location,home_location
+CSV-1001,45.00,Web,Standard,Mumbai, India,Mumbai, India
+CSV-1002,12000.50,Mobile,Standard,Moscow, Russia,Delhi, India
+CSV-1003,12.99,POS,Standard,Delhi, India,Delhi, India
+CSV-1004,85000.00,Web,Premium,London, UK,London, UK
+CSV-1005,5.00,Mobile,Standard,Beijing, China,Chennai, India

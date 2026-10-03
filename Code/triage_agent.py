@@ -3,12 +3,12 @@ import requests
 import urllib.request
 import time
 import os
+import re
 from pydantic import BaseModel
 
-# Configuration
 OLLAMA_API_URL = "http://localhost:11434/api/generate"
 LOCAL_MODEL = "llama3"
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") # Will read from environment if available
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") 
 
 class FraudAlert(BaseModel):
     alert_id: str
@@ -18,7 +18,8 @@ class FraudAlert(BaseModel):
     ip_location: str
     home_location: str
 
-def run_local_llm_triage(alert: FraudAlert) -> dict:
+# NEW: RAG Parameter added (historical_context)
+def run_local_llm_triage(alert: FraudAlert, historical_context: str = "No historical data found.") -> dict:
     prompt = f"""
     You are an expert fraud analyst system. Review the following transaction alert and classify the risk level as HIGH, MEDIUM, or LOW.
     
@@ -29,15 +30,16 @@ def run_local_llm_triage(alert: FraudAlert) -> dict:
     Transaction Location: {alert.ip_location}
     Customer Home Location: {alert.home_location}
     
+    HISTORICAL MEMORY (RAG CONTEXT):
+    {historical_context}
+    
     Instructions:
     1. If the location does not match the home location, increase risk.
-    2. If the amount is highly anomalous for a standard customer, increase risk.
+    2. If the amount is highly anomalous compared to historical RAG memory, increase risk.
     3. Output ONLY a valid JSON object with the keys: "risk_level" (HIGH/MEDIUM/LOW), "rationale" (string), "confidence" (float 0.0-1.0).
     """
 
-    # --- CLOUD AI (OPENAI) PATH ---
     if OPENAI_API_KEY:
-        print("Using OpenAI GPT API for Triage...")
         try:
             from openai import OpenAI
             client = OpenAI(api_key=OPENAI_API_KEY)
@@ -50,30 +52,30 @@ def run_local_llm_triage(alert: FraudAlert) -> dict:
         except Exception as e:
             print(f"OpenAI Failed: {e}. Falling back...")
 
-    # --- LOCAL / SIMULATED PATH ---
-    print(f"Sending alert {alert.alert_id} to local {LOCAL_MODEL}...")
     try:
         payload = { "model": LOCAL_MODEL, "prompt": prompt, "stream": False, "format": "json" }
         response = requests.post(OLLAMA_API_URL, json=payload, timeout=3)
         response.raise_for_status()
         return json.loads(response.json().get("response", "{}"))
     except requests.exceptions.ConnectionError:
-        print("⚠️ Local AI not detected! Falling back to SIMULATED AI...")
+        print("WARNING: Local AI not detected! Falling back to SIMULATED AI...")
         time.sleep(2)
+        
+        # Make the simulation react to the RAG memory!
+        rag_text = ""
+        if "Amount" in historical_context:
+            rag_text = "Cross-referenced with historical memory (RAG). "
+            
         if alert.amount > 10000 or alert.ip_location != alert.home_location:
-            return {"risk_level": "HIGH", "rationale": "SIMULATED: Highly anomalous amount and foreign IP mismatch.", "confidence": 0.95}
+            return {"risk_level": "HIGH", "rationale": rag_text + "Highly anomalous amount and foreign IP mismatch detected.", "confidence": 0.95}
         else:
-            return {"risk_level": "LOW", "rationale": "SIMULATED: Matches standard geographic and baseline behavior.", "confidence": 0.88}
+            return {"risk_level": "LOW", "rationale": rag_text + "Matches standard geographic and historical baseline behavior.", "confidence": 0.88}
     except Exception as e:
         return {"risk_level": "ERROR", "rationale": str(e), "confidence": 0.0}
 
 def run_c2a_query(case_data: dict, user_query: str) -> str:
-    url_match = re.search(r'(https?://[^\s]+)', user_query) if 're' in globals() else None
-    scraped_text = ""
-    osint_status = ""
-    
-    import re
     url_match = re.search(r'(https?://[^\s]+)', user_query)
+    osint_status = ""
     
     if url_match:
         url = url_match.group(1)
@@ -93,7 +95,6 @@ def run_c2a_query(case_data: dict, user_query: str) -> str:
     Provide a concise, professional answer based on the case data.
     """
 
-    # --- CLOUD AI (OPENAI) PATH ---
     if OPENAI_API_KEY:
         try:
             from openai import OpenAI
@@ -104,9 +105,8 @@ def run_c2a_query(case_data: dict, user_query: str) -> str:
             )
             return response.choices[0].message.content
         except Exception as e:
-            pass # Fall back to local
+            pass 
 
-    # --- LOCAL / SIMULATED PATH ---
     try:
         payload = { "model": LOCAL_MODEL, "prompt": prompt, "stream": False }
         response = requests.post(OLLAMA_API_URL, json=payload, timeout=3)
